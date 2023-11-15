@@ -23,20 +23,46 @@ suspend fun main(): Unit = coroutineScope {
 //    job.cancelAndJoin()
 //    println("Cancelled successfully")
 //    delay(1000)
-    launch (job){
-        try {
-            delay(2000)
-            println("Job is done")
-        } finally {
-            println("Finally")
-            launch {
-                println("Will not be printed")
-            }
-            delay(1000)
-            println("Will not be printed")
-        }
+
+//    launch (job){
+//        try {
+//            delay(2000)
+//            println("Job is done")
+//        } finally {
+//            println("Finally")
+//            launch {
+//                println("Will not be printed")
+//            }
+//            delay(1000)
+//            println("Will not be printed")
+//        }
+//    }
+//    delay(1000)
+//    job.cancelAndJoin()
+//    println("Cancel done")
+
+//    launch (job){
+//        try {
+//            delay(200)
+//            println("Coroutine finished")
+//        } finally {
+//            println("Finally")
+//            withContext(NonCancellable) {
+//                delay(1000L)
+//                println("Cleanup done")
+//            }
+//        }
+//    }
+//    delay(100)
+//    job.cancelAndJoin()
+//    println("Done")
+
+    val job2 = launch {
+        delay(1000)
     }
-    delay(1000)
-    job.cancelAndJoin()
-    println("Cancel done")
+    job2.invokeOnCompletion { exception : Throwable? ->
+        println("Finished")
+    }
+    delay(400)
+    job2.cancelAndJoin()
 }
