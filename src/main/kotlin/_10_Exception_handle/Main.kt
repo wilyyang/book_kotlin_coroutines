@@ -143,7 +143,7 @@ suspend fun test9() {
     val handler = CoroutineExceptionHandler{ ctx, exception ->
         println("Caught $exception")
     }
-    val scope = CoroutineScope(SupervisorJob() + handler)
+    val scope = CoroutineScope(handler)
     scope.launch {
         delay(1000)
         throw Error("Some error")
@@ -152,6 +152,8 @@ suspend fun test9() {
     scope.launch {
         delay(2000)
         println("Will be printed")
+    }.invokeOnCompletion {
+        println("Error : "+it)
     }
     delay(3000)
 }
