@@ -1,5 +1,6 @@
 package _11_CoroutineScope
 
+import _3_suspend.User
 import _3_suspend.continuation
 import kotlinx.coroutines.*
 
@@ -176,7 +177,7 @@ suspend fun te3(){
 
 fun CoroutineScope.log(text : String){
     val name = this.coroutineContext[CoroutineName]?.name
-    println("[$name] $text")
+    println("[$name] $text ${this.coroutineContext}")
 }
 suspend fun test7() = withContext(CoroutineName("Parent")){
     log("Before")
@@ -193,12 +194,102 @@ suspend fun test7() = withContext(CoroutineName("Parent")){
         delay(500)
         log("Hello 2")
     }
+}
 
-    launch (Dispatchers.Main){
+suspend fun test8() = coroutineScope{
+    log("Before")
+    supervisorScope {
+        launch {
+            delay(1000)
+            log("Error")
+            throw Error()
+        }
+        launch {
+            delay(2000)
+            log("Done")
+        }
+    }
 
+    log("After")
+}
+
+suspend fun test9() = coroutineScope{
+    log("Before")
+    withContext(SupervisorJob()){
+        launch {
+            delay(1000)
+            log("Error")
+            throw Error()
+        }
+        launch {
+            delay(2000)
+            log("Done")
+        }
+    }
+    launch {
+        delay(2000)
+        log("GOGO")
+    }
+    log("After")
+}
+
+suspend fun test(): Int = withTimeout(1500){
+    delay(1000)
+    println("Still thinking")
+    delay(1000)
+    println("Done")
+    42
+}
+suspend fun test10() = coroutineScope{
+    try {
+        test()
+    }catch(e :TimeoutCancellationException){
+        println("Cancelled $e")
     }
 }
 
+suspend fun test11() = coroutineScope{
+    launch {
+        launch {
+            delay(2000)
+            println("Will not be printed")
+        }
+        withTimeout(1000) {
+            delay(1500)
+        }
+    }.invokeOnCompletion {
+        println("OKOKOK $it")
+    }
+    launch {
+        delay(2000)
+        println("Done")
+    }
+}
+
+suspend fun fetchUser() : User{
+    while(true){
+        yield()
+    }
+}
+
+suspend fun getUserOrNull() : User? = withTimeoutOrNull(5000){
+    fetchUser()
+}
+
+suspend fun test12() = coroutineScope{
+    val user = getUserOrNull()
+    println("User: $user")
+}
+
+suspend fun calculatedAnswerOrNull(): User? =
+    withContext(Dispatchers.Default){
+        withTimeoutOrNull(1000){
+            fetchUser()
+        }
+    }
+
+val analyticScope = CoroutineScope(SupervisorJob())
+
 fun main(): Unit = runBlocking(CoroutineName("parent")) {
-    test7()
+    test12()
 }
