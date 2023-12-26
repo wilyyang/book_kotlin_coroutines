@@ -2,6 +2,7 @@ package _22_FlowLifeCycle
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlin.coroutines.coroutineContext
 
 suspend fun test1() = coroutineScope {
     flowOf(1,2,3,4).onEach { print(it) }.collect()
@@ -67,7 +68,64 @@ suspend fun test4() = coroutineScope {
     }
 }
 
+val flow4 = flow {
+    emit("Message1")
+    emit("Message2")
+}
+
+suspend fun test5() = coroutineScope {
+//    flow4.onStart { println("Before") }.catch { println("Caught $it") }.collect{ throw MyError() }
+    flow4.onStart { println("Before") }.onEach{ throw MyError()}.catch { println("Caught $it") }.collect()
+}
+
+fun usersFLow(): Flow<String> = flow {
+    repeat(2){
+        val ctx = currentCoroutineContext()
+        val name = ctx[CoroutineName]?.name
+        emit("User$it in $name")
+    }
+}
+
+suspend fun test6() = coroutineScope {
+    val users = usersFLow()
+    withContext(CoroutineName("Name1")){
+        users.collect{ println(it)}
+    }
+
+    withContext(CoroutineName("Name2")){
+        users.collect{ println(it)}
+    }
+}
+
+suspend fun present(place : String, message : String){
+    val ctx = coroutineContext
+    val name = ctx[CoroutineName]?.name
+    println("[$name] $message on $place")
+}
+
+fun messageFlow(): Flow<String> = flow {
+    present("flow builder", "Message")
+    emit("Message")
+}
+
+suspend fun test7() = coroutineScope {
+    val users = messageFlow()
+    withContext(CoroutineName("Name1")) {
+        users.flowOn(CoroutineName("Name3"))
+            .onEach { present("onEach", it) }
+            .flowOn(CoroutineName("Name2"))
+            .collect { present("collect", it) }
+    }
+}
+
+suspend fun test8() = coroutineScope {
+    flowOf("User1", "User2")
+        .onStart { println("Users:") }
+        .onEach { println(it)
+        }
+        .launchIn(this)
+}
 
 fun main(): Unit = runBlocking {
-    test4()
+    test8()
 }
