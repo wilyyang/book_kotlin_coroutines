@@ -48,6 +48,84 @@ suspend fun test7() = coroutineScope {
     println(res)
 }
 
+suspend fun test8() = coroutineScope {
+
+    val list = listOf(1,2,3,4)
+    val res = list.scan(0){ acc, i ->  acc+i}
+    println(res)
+
+    flowOf(1, 2, 3, 4).onEach { delay(1000) }.scan(0) { acc, v -> acc + v }.collect{ println(it)}
+}
+
+fun flowFrom(elem : String) = flowOf(1,2,3).onEach { delay(1000) }.map{ "${it}_${elem}"}
+
+suspend fun test9() = coroutineScope {
+    flowOf("A", "B", "C").flatMapConcat { flowFrom(it) }.collect{ println(it) }
+    flowOf("A123", "B456", "C789").flatMapConcat { it -> it.toList().asFlow().onEach { delay(1000) } }.collect{ println(it) }
+}
+
+suspend fun test10() = coroutineScope {
+    flowOf("A", "B", "C").flatMapMerge { flowFrom(it) }.collect{ println(it) }
+    flowOf("A123", "B456", "C789").flatMapMerge { it -> it.toList().asFlow().onEach { delay(1000) } }.collect{ println(it) }
+}
+
+suspend fun test11() = coroutineScope {
+    flowOf("A", "B", "C").flatMapMerge(concurrency = 2) { flowFrom(it)}.collect{ println(it)}
+}
+
+suspend fun test12() = coroutineScope {
+    flowOf("A", "B", "C").flatMapLatest { flowFrom(it) }.collect{ println(it) }
+    flowOf("A123", "B456", "C789").flatMapLatest { it -> it.toList().asFlow().onEach { delay(1000) } }.collect{ println(it) }
+}
+
+suspend fun test13() = coroutineScope {
+    flowOf("A", "B", "C").onEach { delay(1200) }.flatMapLatest { flowFrom(it) }.collect{println(it)}
+}
+
+suspend fun test14() = coroutineScope {
+    flow {
+        emit(1)
+        emit(2)
+        error("E")
+        emit(3)
+    }.retry(3) {
+        println(it.message)
+        true
+    }.collect { print(it) }
+}
+
+suspend fun test15() = coroutineScope {
+    flowOf(1,2,2,3,2,1,1,3).distinctUntilChanged().collect{print(it)}
+}
+
+data class User(val id:Int, val name:String){
+    override fun toString(): String ="[$id] $name"
+}
+
+suspend fun test16() = coroutineScope {
+    val users = flowOf(
+        User(1, "Alex"),
+        User(1, "Bob"),
+        User(2, "Bob"),
+        User(2, "Celine")
+    )
+
+    println(users.distinctUntilChangedBy { it.id }.toList())
+    println(users.distinctUntilChangedBy { it.name }.toList())
+
+    println(users.distinctUntilChanged { prev, next -> prev.id == next.id || prev.name == next.name }.toList())
+}
+
+suspend fun test17() = coroutineScope {
+    val flow = flowOf(1, 2, 3, 4).map { it * it }
+
+    println(flow.first())
+    println(flow.count())
+
+    println(flow.reduce { acc, value -> acc * value })
+    println(flow.fold(0) { acc, value -> acc + value })
+}
+
 fun main(): Unit = runBlocking {
-    test7()
+    test17()
 }
